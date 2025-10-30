@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cappuccino Spark — Quản Lý Nhân Sự</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --brand:#4a2c2a; --accent:#ffb347;
+      --primary:#0d6efd; --success:#28a745; --danger:#dc3545;
+      --muted:#6c757d; --card:#f9f9fb;
+      --bg1:#f0ede9; --bg2:#d8e7f1;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Segoe UI",Inter,system-ui;margin:0;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:#222;}
+    header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid #eee}
+    .topbar{max-width:1240px;margin:auto;display:flex;align-items:center;gap:12px;padding:12px 20px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--brand)}
+    .brand svg{width:34px;height:34px}
+    .container{max-width:1240px;margin:20px auto;padding:0 20px}
+    input,select{padding:10px 12px;border:1px solid #d0d7de;border-radius:8px;min-width:160px}
+    button{padding:10px 14px;border:0;border-radius:8px;cursor:pointer;font-weight:600}
+    .btn{background:#e9ecef;color:#222}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-success{background:var(--success);color:#fff}
+    .btn-danger{background:var(--danger);color:#fff}
+    .btn-outline{background:#fff;border:1px solid #d0d7de}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .card{background:#fff;border:1px solid #eceff3;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.04)}
+    .card img{width:100%;height:180px;object-fit:cover;background:#eee}
+    .card .body p{margin:4px 0;word-wrap:break-word;overflow-wrap:anywhere;}
+    .panel{background:var(--card);border:1px solid #eceff3;border-radius:14px;padding:14px;margin-bottom:16px}
+    .form-grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px}
+    @media(max-width:900px){.form-grid{grid-template-columns:repeat(2,1fr)}}
+    .muted{color:var(--muted);font-size:13px}
+    .hidden{display:none!important}
+    .overlay{position:fixed;inset:0;background:linear-gradient(135deg,#2b2b2b,#1c1c1c);display:flex;align-items:center;justify-content:center;z-index:99}
+    .login{width:360px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+  </style>
+</head>
+<body>
+
+<!-- Đăng nhập -->
+<div class="overlay" id="gate">
+  <div class="login">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <path fill="var(--brand)" d="M10 42c0 6 7 11 22 11s22-5 22-11V22H10v20Z"/>
+        <path fill="var(--accent)" d="M54 22c4 0 7 3 7 7s-3 7-7 7h-4V22h4Z"/>
+        <path fill="#fff" d="M12 18c3-5 12-8 20-8s17 3 20 8H12Z"/>
+      </svg>
+      <span>Cappuccino Spark</span>
+    </div>
+    <h3>Đăng nhập</h3>
+    <input id="pw" type="password" placeholder="Nhập mật khẩu..." style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc">
+    <button class="btn-primary" style="width:100%" onclick="login()">Vào hệ thống</button>
+    <p class="muted">Mật khẩu mặc định: <b>123456</b></p>
+  </div>
+</div>
+
+<header>
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <path fill="var(--brand)" d="M10 42c0 6 7 11 22 11s22-5 22-11V22H10v20Z"/>
+        <path fill="var(--accent)" d="M54 22c4 0 7 3 7 7s-3 7-7 7h-4V22h4Z"/>
+        <path fill="#fff" d="M12 18c3-5 12-8 20-8s17 3 20 8H12Z"/>
+      </svg>
+      <span>Cappuccino Spark</span>
+    </div>
+    <!-- Góc phải -->
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <input id="oldPw" type="password" placeholder="Mật khẩu hiện tại">
+      <input id="newPw" type="password" placeholder="Mật khẩu mới">
+      <button class="btn-primary" onclick="changePassword()"><i class="fa fa-key"></i> Đổi</button>
+    </div>
+  </div>
+</header>
+
+<main class="container hidden" id="app">
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Tìm theo tên, vị trí, quê quán, email, sđt…" />
+    <button class="btn" id="btnSearch"><i class="fa fa-search"></i> Tìm</button>
+    <button class="btn-outline" id="btnShowAll"><i class="fa fa-list"></i> Hiển thị tất cả</button>
+    <button class="btn-success" id="toggleForm"><i class="fa fa-plus"></i> Thêm nhân viên</button>
+  </div>
+
+  <!-- Form thêm/sửa -->
+  <section id="formPanel" class="panel hidden">
+    <h3>Thêm / Cập nhật nhân viên</h3>
+    <div class="form-grid">
+      <input id="empId" type="text" placeholder="Mã nhân viên *" />
+      <input id="name" type="text" placeholder="Họ và tên *" />
+      <select id="gender">
+        <option value="">Giới tính *</option>
+        <option>Nam</option><option>Nữ</option><option>Khác</option>
+      </select>
+      <input id="year" type="number" placeholder="Năm sinh *" />
+      <input id="position" type="text" placeholder="Vị trí *" />
+      <input id="hometown" type="text" placeholder="Quê quán *" />
+      <input id="address" type="text" placeholder="Nơi ở hiện tại *" />
+      <input id="startDate" type="date" placeholder="Ngày vào làm *" />
+      <input id="phone" type="text" placeholder="Số điện thoại *" />
+      <input id="email" type="email" placeholder="Email *" />
+      <input id="specialty" type="text" placeholder="Món sở trường (tùy chọn)" />
+      <input id="avatarFile" type="file" accept="image/*" />
+      <button class="btn-success" onclick="saveEmployee()"><i class="fa fa-save"></i> Lưu</button>
+    </div>
+    <p class="muted">(*) Bắt buộc. Năm sinh phải hợp lý, năm vào làm > năm sinh + 18.</p>
+  </section>
+
+  <!-- Bộ lọc -->
+  <section class="panel">
+    <div class="form-grid" style="grid-template-columns:repeat(5,1fr)">
+      <input id="filterYearStart" type="number" placeholder="Năm vào làm (VD: 2020)">
+      <input id="filterBirthYear" type="number" placeholder="Năm sinh (VD: 1998)">
+      <select id="filterGender"><option value="">Giới tính (all)</option><option>Nam</option><option>Nữ</option><option>Khác</option></select>
+      <select id="filterAddress"><option value="">Nơi ở (all)</option></select>
+      <select id="filterPosition"><option value="">Vị trí (all)</option></select>
+    </div>
+    <button class="btn" id="btnApplyFilter" style="margin-top:10px"><i class="fa fa-filter"></i> Lọc</button>
+  </section>
+
+  <section class="grid" id="list"></section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS_KEY='hr_employees',PW_KEY='hr_password';
+if(!localStorage.getItem(PW_KEY))localStorage.setItem(PW_KEY,'123456');
+let employees=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+function persist(){localStorage.setItem(LS_KEY,JSON.stringify(employees));}
+
+// Login
+function login(){
+  const pw=$('pw').value.trim();
+  if(pw===localStorage.getItem(PW_KEY)){
+    $('gate').classList.add('hidden');$('app').classList.remove('hidden');renderAll();
+  }else alert('Sai mật khẩu!');
+}
+// Đổi mật khẩu
+function changePassword(){
+  const oldPw=$('oldPw').value.trim(),newPw=$('newPw').value.trim();
+  if(oldPw!==localStorage.getItem(PW_KEY))return alert('Mật khẩu hiện tại không đúng!');
+  if(!newPw||newPw.length<6)return alert('Mật khẩu mới phải >=6 ký tự!');
+  localStorage.setItem(PW_KEY,newPw);$('oldPw').value=$('newPw').value='';alert('Đã đổi mật khẩu thành công!');
+}
+
+// Đọc ảnh
+function readAvatar(file){
+  return new Promise(res=>{
+    if(!file)return res(null);
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.readAsDataURL(file);
+  });
+}
+
+// Lưu nhân viên
+async function saveEmployee(){
+  const idVal=$('empId').value.trim();
+  const emp={
+    empId:idVal,
+    name:$('name').value.trim(),
+    gender:$('gender').value.trim(),
+    year:+$('year').value.trim(),
+    position:$('position').value.trim(),
+    hometown:$('hometown').value.trim(),
+    address:$('address').value.trim(),
+    startDate:$('startDate').value,
+    phone:$('phone').value.trim(),
+    email:$('email').value.trim(),
+    specialty:$('specialty').value.trim(),
+    imageUrl:await readAvatar($('avatarFile').files[0])||''
+  };
+  const now=new Date().getFullYear();
+  if(!emp.empId||!emp.name||!emp.gender||!emp.year||!emp.position||!emp.address||!emp.startDate||!emp.phone||!emp.email)
+    return alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
+  if(emp.year>now||emp.year<1900)return alert('Năm sinh không hợp lệ!');
+  const startYear=new Date(emp.startDate).getFullYear();
+  if(startYear>now)return alert('Năm vào làm không được lớn hơn năm hiện tại!');
+  if(startYear<=emp.year+18)return alert('Năm vào làm phải lớn hơn năm sinh ít nhất 18 năm!');
+  if(!/^[0-9]{10}$/.test(emp.phone))return alert('SĐT phải có 10 chữ số!');
+  if(!emp.email.includes('@'))return alert('Email không hợp lệ!');
+
+  const existing=employees.findIndex(e=>e.empId.toLowerCase()===idVal.toLowerCase());
+  if(existing>=0){employees[existing]=emp;alert('Cập nhật nhân viên thành công!');}
+  else{employees.push(emp);alert('Thêm nhân viên thành công!');}
+  persist();renderAll();$('formPanel').classList.add('hidden');
+}
+
+// Sửa & Xóa
+function editEmployee(i){
+  const e=employees[i];
+  for(const k in e){if($(k))$(k).value=e[k]||'';}
+  $('formPanel').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function deleteEmployee(i){
+  if(confirm('Bạn có chắc muốn xóa nhân viên này?')){
+    employees.splice(i,1);persist();renderAll();
+  }
+}
+
+// Dropdown động
+function buildDropdowns(){
+  const posSet=new Set(),addrSet=new Set();
+  employees.forEach(e=>{
+    if(e.position)posSet.add(e.position.trim());
+    if(e.address){
+      const parts=e.address.split(',').map(x=>x.trim());
+      addrSet.add(parts[parts.length-1].toLowerCase());
+    }
+  });
+  $('filterPosition').innerHTML='<option value="">Vị trí (all)</option>'+[...posSet].map(v=>`<option>${v}</option>`).join('');
+  $('filterAddress').innerHTML='<option value="">Nơi ở (all)</option>'+[...addrSet].map(v=>`<option>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
+}
+
+// Lọc
+function applyFilter(list){
+  const q=$('search').value.trim().toLowerCase();
+  if(!q)return list;
+  return list.filter(e=>Object.values(e).join(' ').toLowerCase().includes(q));
+}
+function applyAdvancedFilter(list){
+  const yStart=$('filterYearStart').value.trim();
+  const yBirth=$('filterBirthYear').value.trim();
+  const g=$('filterGender').value.trim().toLowerCase();
+  const addr=$('filterAddress').value.trim().toLowerCase();
+  const pos=$('filterPosition').value.trim().toLowerCase();
+  return list.filter(e=>{
+    if(yStart&&new Date(e.startDate).getFullYear()!=+yStart)return false;
+    if(yBirth&&e.year!=+yBirth)return false;
+    if(g&&e.gender.toLowerCase()!=g)return false;
+    if(addr&&e.address.toLowerCase().includes(addr)==false)return false;
+    if(pos&&e.position.toLowerCase()!=pos)return false;
+    return true;
+  });
+}
+function renderList(list){
+  const target=$('list');target.innerHTML='';
+  if(!list.length)return target.innerHTML='<p style="text-align:center;color:gray">Không có nhân viên nào.</p>';
+  list.forEach((e,i)=>{
+    target.insertAdjacentHTML('beforeend',`
+      <article class="card">
+        <img src="${e.imageUrl||'https://via.placeholder.com/400x240?text=Avatar'}">
+        <div class="body" style="padding:10px 14px">
+          <h3>${e.name}</h3>
+          <p><b>Giới tính:</b> ${e.gender}</p>
+          <p><b>Năm sinh:</b> ${e.year}</p>
+          <p><b>Vị trí:</b> ${e.position}</p>
+          <p><b>Quê quán:</b> ${e.hometown}</p>
+          <p><b>Nơi ở:</b> ${e.address}</p>
+          <p><b>Ngày vào làm:</b> ${e.startDate}</p>
+          <p><b>SĐT:</b> ${e.phone}</p>
+          <p><b>Email:</b> ${e.email}</p>
+          <p><b>Sở trường:</b> ${e.specialty||'—'}</p>
+        </div>
+        <div class="actions" style="display:flex;gap:6px;padding:10px">
+          <button class="btn-outline" onclick="editEmployee(${i})"><i class="fa fa-pen"></i> Sửa</button>
+          <button class="btn-danger" onclick="deleteEmployee(${i})"><i class="fa fa-trash"></i> Xóa</button>
+        </div>
+      </article>`);
+  });
+}
+function renderAll(){
+  buildDropdowns();
+  let result=applyFilter(employees);
+  result=applyAdvancedFilter(result);
+  renderList(result);
+}
+
+// Sự kiện
+$('btnSearch').onclick=renderAll;
+$('search').addEventListener('keydown',e=>{if(e.key==='Enter')renderAll();});
+$('btnShowAll').onclick=()=>{$('search').value='';['filterYearStart','filterBirthYear','filterGender','filterAddress','filterPosition'].forEach(id=>$(id).value='');renderAll();};
+$('btnApplyFilter').onclick=renderAll;
+$('toggleForm').onclick=()=>{const p=$('formPanel');const open=p.classList.contains('hidden');p.classList.toggle('hidden');if(open){['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty'].for
+['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty']
+  .forEach(id => $(id).value = '');
+  $('avatarFile').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}};
+
+renderAll();
+</script>
+</body>
+</html>
