@@ -177,29 +177,6 @@ button {
   padding: 22px;
   box-shadow: 0 12px 40px rgba(0,0,0,.25);
 }
-
-/* RESPONSIVE ADJUSTMENTS */
-@media (max-width: 1024px) {
-  .topbar { flex-direction: column; align-items: stretch; }
-  .toolbar { flex-direction: column; }
-}
-
-@media (max-width: 768px) {
-  .brand svg { width: 28px; height: 28px; }
-  .form-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-  .toolbar button, .toolbar input { width: 100%; }
-  .btn, .btn-primary, .btn-success, .btn-outline { width: 100%; }
-}
-
-@media (max-width: 480px) {
-  body { font-size: 15px; }
-  header input, header button { width: 100%; }
-  .form-grid { grid-template-columns: 1fr; }
-  .grid { grid-template-columns: 1fr; }
-  .card img { height: 150px; }
-  .topbar { padding: 10px; }
-  .login { padding: 18px; width: 95%; }
-}
 </style>
 
 </head>
@@ -233,7 +210,6 @@ button {
       </svg>
       <span>Cappuccino Spark</span>
     </div>
-    <!-- Góc phải -->
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
       <input id="oldPw" type="password" placeholder="Mật khẩu hiện tại">
       <input id="newPw" type="password" placeholder="Mật khẩu mới">
@@ -250,7 +226,6 @@ button {
     <button class="btn-success" id="toggleForm"><i class="fa fa-plus"></i> Thêm nhân viên</button>
   </div>
 
-  <!-- Form thêm/sửa -->
   <section id="formPanel" class="panel hidden">
     <h3>Thêm / Cập nhật nhân viên</h3>
     <div class="form-grid">
@@ -268,13 +243,11 @@ button {
       <input id="phone" type="text" placeholder="Số điện thoại *" />
       <input id="email" type="email" placeholder="Email *" />
       <input id="specialty" type="text" placeholder="Món sở trường (tùy chọn)" />
-      <input id="avatarFile" type="file" accept="image/*" />
       <button class="btn-success" onclick="saveEmployee()"><i class="fa fa-save"></i> Lưu</button>
     </div>
     <p class="muted">(*) Bắt buộc. Năm sinh phải hợp lý, năm vào làm > năm sinh + 18.</p>
   </section>
 
-  <!-- Bộ lọc -->
   <section class="panel">
     <div class="form-grid" style="grid-template-columns:repeat(5,1fr)">
       <input id="filterYearStart" type="number" placeholder="Năm vào làm (VD: 2020)">
@@ -296,14 +269,13 @@ if(!localStorage.getItem(PW_KEY))localStorage.setItem(PW_KEY,'123456');
 let employees=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
 function persist(){localStorage.setItem(LS_KEY,JSON.stringify(employees));}
 
-// Login
 function login(){
   const pw=$('pw').value.trim();
   if(pw===localStorage.getItem(PW_KEY)){
     $('gate').classList.add('hidden');$('app').classList.remove('hidden');renderAll();
   }else alert('Sai mật khẩu!');
 }
-// Đổi mật khẩu
+
 function changePassword(){
   const oldPw=$('oldPw').value.trim(),newPw=$('newPw').value.trim();
   if(oldPw!==localStorage.getItem(PW_KEY))return alert('Mật khẩu hiện tại không đúng!');
@@ -311,17 +283,6 @@ function changePassword(){
   localStorage.setItem(PW_KEY,newPw);$('oldPw').value=$('newPw').value='';alert('Đã đổi mật khẩu thành công!');
 }
 
-// Đọc ảnh
-function readAvatar(file){
-  return new Promise(res=>{
-    if(!file)return res(null);
-    const r=new FileReader();
-    r.onload=()=>res(r.result);
-    r.readAsDataURL(file);
-  });
-}
-
-// Lưu nhân viên
 async function saveEmployee(){
   const idVal=$('empId').value.trim();
   const emp={
@@ -335,9 +296,9 @@ async function saveEmployee(){
     startDate:$('startDate').value,
     phone:$('phone').value.trim(),
     email:$('email').value.trim(),
-    specialty:$('specialty').value.trim(),
-    imageUrl:await readAvatar($('avatarFile').files[0])||''
+    specialty:$('specialty').value.trim()
   };
+
   const now=new Date().getFullYear();
   if(!emp.empId||!emp.name||!emp.gender||!emp.year||!emp.position||!emp.address||!emp.startDate||!emp.phone||!emp.email)
     return alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
@@ -354,7 +315,6 @@ async function saveEmployee(){
   persist();renderAll();$('formPanel').classList.add('hidden');
 }
 
-// Sửa & Xóa
 function editEmployee(i){
   const e=employees[i];
   for(const k in e){if($(k))$(k).value=e[k]||'';}
@@ -367,7 +327,6 @@ function deleteEmployee(i){
   }
 }
 
-// Dropdown động
 function buildDropdowns(){
   const posSet=new Set(),addrSet=new Set();
   employees.forEach(e=>{
@@ -381,7 +340,6 @@ function buildDropdowns(){
   $('filterAddress').innerHTML='<option value="">Nơi ở (all)</option>'+[...addrSet].map(v=>`<option>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
 }
 
-// Lọc
 function applyFilter(list){
   const q=$('search').value.trim().toLowerCase();
   if(!q)return list;
@@ -402,13 +360,14 @@ function applyAdvancedFilter(list){
     return true;
   });
 }
+
 function renderList(list){
   const target=$('list');target.innerHTML='';
   if(!list.length)return target.innerHTML='<p style="text-align:center;color:gray">Không có nhân viên nào.</p>';
   list.forEach((e,i)=>{
     target.insertAdjacentHTML('beforeend',`
       <article class="card">
-        <img src="${e.imageUrl||'https://via.placeholder.com/400x240?text=Avatar'}">
+        <img src="https://via.placeholder.com/400x240?text=Avatar">
         <div class="body" style="padding:10px 14px">
           <h3>${e.name}</h3>
           <p><b>Giới tính:</b> ${e.gender}</p>
@@ -428,6 +387,7 @@ function renderList(list){
       </article>`);
   });
 }
+
 function renderAll(){
   buildDropdowns();
   let result=applyFilter(employees);
@@ -435,22 +395,23 @@ function renderAll(){
   renderList(result);
 }
 
-// Sự kiện
 $('btnSearch').onclick=renderAll;
 $('search').addEventListener('keydown',e=>{if(e.key==='Enter')renderAll();});
 $('btnShowAll').onclick=()=>{$('search').value='';['filterYearStart','filterBirthYear','filterGender','filterAddress','filterPosition'].forEach(id=>$(id).value='');renderAll();};
 $('btnApplyFilter').onclick=renderAll;
-$('toggleForm').onclick=()=>{const p=$('formPanel');const open=p.classList.contains('hidden');p.classList.toggle('hidden');if(open){['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty'].for
-['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty']
-  .forEach(id => $(id).value = '');
-  $('avatarFile').value = '';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}};
+$('toggleForm').onclick=()=>{const p=$('formPanel');const open
+$('toggleForm').onclick=()=>{ 
+  const p=$('formPanel'); 
+  const open=p.classList.contains('hidden'); 
+  p.classList.toggle('hidden'); 
+  if(open){ 
+    ['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty']
+      .forEach(id => $(id).value = '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 
 renderAll();
 </script>
 </body>
 </html>
-
-
-
