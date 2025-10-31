@@ -286,112 +286,151 @@ button {
 </main>
 
 <script>
-const $=id=>document.getElementById(id);
-const LS_KEY='hr_employees',PW_KEY='hr_password';
-if(!localStorage.getItem(PW_KEY))localStorage.setItem(PW_KEY,'123456');
-let employees=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-function persist(){localStorage.setItem(LS_KEY,JSON.stringify(employees));}
+const $ = id => document.getElementById(id);
 
-// Login
-function login(){
-  const pw=$('pw').value.trim();
-  if(pw===localStorage.getItem(PW_KEY)){
-    $('gate').classList.add('hidden');$('app').classList.remove('hidden');renderAll();
-  }else alert('Sai mật khẩu!');
-}
-// Đổi mật khẩu
-function changePassword(){
-  const oldPw=$('oldPw').value.trim(),newPw=$('newPw').value.trim();
-  if(oldPw!==localStorage.getItem(PW_KEY))return alert('Mật khẩu hiện tại không đúng!');
-  if(!newPw||newPw.length<6)return alert('Mật khẩu mới phải >=6 ký tự!');
-  localStorage.setItem(PW_KEY,newPw);$('oldPw').value=$('newPw').value='';alert('Đã đổi mật khẩu thành công!');
-}
+let employees = [];
+let password = '123456';
 
-// Lưu nhân viên
-async function saveEmployee(){
-  const idVal=$('empId').value.trim();
-  const emp={
-    empId:idVal,
-    name:$('name').value.trim(),
-    gender:$('gender').value.trim(),
-    year:+$('year').value.trim(),
-    position:$('position').value.trim(),
-    hometown:$('hometown').value.trim(),
-    address:$('address').value.trim(),
-    startDate:$('startDate').value,
-    phone:$('phone').value.trim(),
-    email:$('email').value.trim(),
-    specialty:$('specialty').value.trim()
-  };
-  const now=new Date().getFullYear();
-  if(!emp.empId||!emp.name||!emp.gender||!emp.year||!emp.position||!emp.address||!emp.startDate||!emp.phone||!emp.email)
-    return alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
-  if(emp.year>now||emp.year<1900)return alert('Năm sinh không hợp lệ!');
-  const startYear=new Date(emp.startDate).getFullYear();
-  if(startYear>now)return alert('Năm vào làm không được lớn hơn năm hiện tại!');
-  if(startYear<=emp.year+18)return alert('Năm vào làm phải lớn hơn năm sinh ít nhất 18 năm!');
-  if(!/^[0-9]{10}$/.test(emp.phone))return alert('SĐT phải có 10 chữ số!');
-  if(!emp.email.includes('@'))return alert('Email không hợp lệ!');
+// ✅ Khôi phục dữ liệu từ localStorage (nếu có)
+if (localStorage.getItem('hr_employees'))
+  employees = JSON.parse(localStorage.getItem('hr_employees') || '[]');
+if (localStorage.getItem('hr_password'))
+  password = localStorage.getItem('hr_password');
 
-  const existing=employees.findIndex(e=>e.empId.toLowerCase()===idVal.toLowerCase());
-  if(existing>=0){employees[existing]=emp;alert('Cập nhật nhân viên thành công!');}
-  else{employees.push(emp);alert('Thêm nhân viên thành công!');}
-  persist();renderAll();$('formPanel').classList.add('hidden');
-}
-
-// Sửa & Xóa
-function editEmployee(i){
-  const e=employees[i];
-  for(const k in e){if($(k))$(k).value=e[k]||'';}
-  $('formPanel').classList.remove('hidden');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-function deleteEmployee(i){
-  if(confirm('Bạn có chắc muốn xóa nhân viên này?')){
-    employees.splice(i,1);persist();renderAll();
+// ✅ Lưu dữ liệu vào localStorage (nếu trình duyệt hỗ trợ)
+function persist() {
+  try {
+    localStorage.setItem('hr_employees', JSON.stringify(employees));
+    localStorage.setItem('hr_password', password);
+  } catch (e) {
+    console.warn("localStorage not available, consider using export JSON");
   }
 }
 
-// Dropdown động
-function buildDropdowns(){
-  const posSet=new Set(),addrSet=new Set();
-  employees.forEach(e=>{
-    if(e.position)posSet.add(e.position.trim());
-    if(e.address){
-      const parts=e.address.split(',').map(x=>x.trim());
-      addrSet.add(parts[parts.length-1].toLowerCase());
-    }
-  });
-  $('filterPosition').innerHTML='<option value="">Vị trí (all)</option>'+[...posSet].map(v=>`<option>${v}</option>`).join('');
-  $('filterAddress').innerHTML='<option value="">Nơi ở (all)</option>'+[...addrSet].map(v=>`<option>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
+// 🔒 Đăng nhập
+function login() {
+  const pw = $('pw').value.trim();
+  if (pw === password) {
+    $('gate').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    renderAll();
+  } else alert('Sai mật khẩu!');
 }
 
-// Lọc
-function applyFilter(list){
-  const q=$('search').value.trim().toLowerCase();
-  if(!q)return list;
-  return list.filter(e=>Object.values(e).join(' ').toLowerCase().includes(q));
+// 🔑 Đổi mật khẩu
+function changePassword() {
+  const oldPw = $('oldPw').value.trim(),
+        newPw = $('newPw').value.trim();
+  if (oldPw !== password) return alert('Mật khẩu hiện tại không đúng!');
+  if (!newPw || newPw.length < 6) return alert('Mật khẩu mới phải >=6 ký tự!');
+  password = newPw;
+  persist();
+  $('oldPw').value = $('newPw').value = '';
+  alert('Đã đổi mật khẩu thành công!');
 }
-function applyAdvancedFilter(list){
-  const yStart=$('filterYearStart').value.trim();
-  const yBirth=$('filterBirthYear').value.trim();
-  const g=$('filterGender').value.trim().toLowerCase();
-  const addr=$('filterAddress').value.trim().toLowerCase();
-  const pos=$('filterPosition').value.trim().toLowerCase();
-  return list.filter(e=>{
-    if(yStart&&new Date(e.startDate).getFullYear()!=+yStart)return false;
-    if(yBirth&&e.year!=+yBirth)return false;
-    if(g&&e.gender.toLowerCase()!=g)return false;
-    if(addr&&e.address.toLowerCase().includes(addr)==false)return false;
-    if(pos&&e.position.toLowerCase()!=pos)return false;
+
+// 💾 Lưu nhân viên
+async function saveEmployee() {
+  const idVal = $('empId').value.trim();
+  const emp = {
+    empId: idVal,
+    name: $('name').value.trim(),
+    gender: $('gender').value.trim(),
+    year: +$('year').value.trim(),
+    position: $('position').value.trim(),
+    hometown: $('hometown').value.trim(),
+    address: $('address').value.trim(),
+    startDate: $('startDate').value,
+    phone: $('phone').value.trim(),
+    email: $('email').value.trim(),
+    specialty: $('specialty').value.trim()
+  };
+  const now = new Date().getFullYear();
+  if (!emp.empId || !emp.name || !emp.gender || !emp.year || !emp.position || !emp.address || !emp.startDate || !emp.phone || !emp.email)
+    return alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
+  if (emp.year > now || emp.year < 1900) return alert('Năm sinh không hợp lệ!');
+  const startYear = new Date(emp.startDate).getFullYear();
+  if (startYear > now) return alert('Năm vào làm không được lớn hơn năm hiện tại!');
+  if (startYear <= emp.year + 18) return alert('Năm vào làm phải lớn hơn năm sinh ít nhất 18 năm!');
+  if (!/^[0-9]{10}$/.test(emp.phone)) return alert('SĐT phải có 10 chữ số!');
+  if (!emp.email.includes('@')) return alert('Email không hợp lệ!');
+
+  const existing = employees.findIndex(e => e.empId.toLowerCase() === idVal.toLowerCase());
+  if (existing >= 0) {
+    employees[existing] = emp;
+    alert('Cập nhật nhân viên thành công!');
+  } else {
+    employees.push(emp);
+    alert('Thêm nhân viên thành công!');
+  }
+  persist();
+  renderAll();
+  $('formPanel').classList.add('hidden');
+}
+
+// 🗑️ Xóa nhân viên
+function editEmployee(i) {
+  const e = employees[i];
+  for (const k in e) { if ($(k)) $(k).value = e[k] || ''; }
+  $('formPanel').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function deleteEmployee(i) {
+  if (confirm('Bạn có chắc muốn xóa nhân viên này?')) {
+    employees.splice(i, 1);
+    persist();
+    renderAll();
+  }
+}
+
+// 🧩 Dropdown động
+function buildDropdowns() {
+  const posSet = new Set(), addrSet = new Set();
+  employees.forEach(e => {
+    if (e.position) posSet.add(e.position.trim());
+    if (e.address) {
+      const parts = e.address.split(',').map(x => x.trim());
+      addrSet.add(parts[parts.length - 1].toLowerCase());
+    }
+  });
+  $('filterPosition').innerHTML =
+    '<option value="">Vị trí (all)</option>' +
+    [...posSet].map(v => `<option>${v}</option>`).join('');
+  $('filterAddress').innerHTML =
+    '<option value="">Nơi ở (all)</option>' +
+    [...addrSet].map(v => `<option>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
+}
+
+// 🔍 Lọc
+function applyFilter(list) {
+  const q = $('search').value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(e => Object.values(e).join(' ').toLowerCase().includes(q));
+}
+function applyAdvancedFilter(list) {
+  const yStart = $('filterYearStart').value.trim();
+  const yBirth = $('filterBirthYear').value.trim();
+  const g = $('filterGender').value.trim().toLowerCase();
+  const addr = $('filterAddress').value.trim().toLowerCase();
+  const pos = $('filterPosition').value.trim().toLowerCase();
+  return list.filter(e => {
+    if (yStart && new Date(e.startDate).getFullYear() != +yStart) return false;
+    if (yBirth && e.year != +yBirth) return false;
+    if (g && e.gender.toLowerCase() != g) return false;
+    if (addr && !e.address.toLowerCase().includes(addr)) return false;
+    if (pos && e.position.toLowerCase() != pos) return false;
     return true;
   });
 }
-function renderList(list){
-  const target=$('list');target.innerHTML='';
-  if(!list.length)return target.innerHTML='<p style="text-align:center;color:gray">Không có nhân viên nào.</p>';
-  list.forEach((e,i)=>{
-    target.insertAdjacentHTML('beforeend',`
+
+// 🧾 Hiển thị danh sách
+function renderList(list) {
+  const target = $('list');
+  target.innerHTML = '';
+  if (!list.length)
+    return target.innerHTML = '<p style="text-align:center;color:gray">Không có nhân viên nào.</p>';
+  list.forEach((e, i) => {
+    target.insertAdjacentHTML('beforeend', `
       <article class="card">
         <img src="https://via.placeholder.com/400x240?text=Avatar">
         <div class="body" style="padding:10px 14px">
@@ -404,7 +443,7 @@ function renderList(list){
           <p><b>Ngày vào làm:</b> ${e.startDate}</p>
           <p><b>SĐT:</b> ${e.phone}</p>
           <p><b>Email:</b> ${e.email}</p>
-          <p><b>Sở trường:</b> ${e.specialty||'—'}</p>
+          <p><b>Sở trường:</b> ${e.specialty || '—'}</p>
         </div>
         <div class="actions" style="display:flex;gap:6px;padding:10px">
           <button class="btn-outline" onclick="editEmployee(${i})"><i class="fa fa-pen"></i> Sửa</button>
@@ -413,24 +452,77 @@ function renderList(list){
       </article>`);
   });
 }
-function renderAll(){
+function renderAll() {
   buildDropdowns();
-  let result=applyFilter(employees);
-  result=applyAdvancedFilter(result);
+  let result = applyFilter(employees);
+  result = applyAdvancedFilter(result);
   renderList(result);
 }
 
-// Sự kiện
-$('btnSearch').onclick=renderAll;
-$('search').addEventListener('keydown',e=>{if(e.key==='Enter')renderAll();});
-$('btnShowAll').onclick=()=>{$('search').value='';['filterYearStart','filterBirthYear','filterGender','filterAddress','filterPosition'].forEach(id=>$(id).value='');renderAll();};
-$('btnApplyFilter').onclick=renderAll;
-$('toggleForm').onclick=()=>{const p=$('formPanel');const open=p.classList.contains('hidden');p.classList.toggle('hidden');if(open){['empId','name','gender','year','position','hometown','address','startDate','phone','email','specialty']
-  .forEach(id => $(id).value = '');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}};
+// 📂 Xuất & nhập dữ liệu JSON
+function exportData() {
+  const blob = new Blob([JSON.stringify({ password, employees }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nhansu_data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (data.employees) employees = data.employees;
+      if (data.password) password = data.password;
+      persist();
+      alert('Đã tải dữ liệu thành công!');
+      renderAll();
+    } catch {
+      alert('File không hợp lệ!');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// 🔘 Gán sự kiện
+$('btnSearch').onclick = renderAll;
+$('search').addEventListener('keydown', e => { if (e.key === 'Enter') renderAll(); });
+$('btnShowAll').onclick = () => {
+  $('search').value = '';
+  ['filterYearStart', 'filterBirthYear', 'filterGender', 'filterAddress', 'filterPosition']
+    .forEach(id => $(id).value = '');
+  renderAll();
+};
+$('btnApplyFilter').onclick = renderAll;
+$('toggleForm').onclick = () => {
+  const p = $('formPanel');
+  const open = p.classList.contains('hidden');
+  p.classList.toggle('hidden');
+  if (open) {
+    ['empId', 'name', 'gender', 'year', 'position', 'hometown', 'address', 'startDate', 'phone', 'email', 'specialty']
+      .forEach(id => $(id).value = '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+// ➕ Thêm nút xuất/nhập JSON
+window.addEventListener('DOMContentLoaded', () => {
+  const bar = document.querySelector('.toolbar');
+  bar.insertAdjacentHTML('beforeend', `
+    <input type="file" id="fileImport" class="hidden" accept="application/json">
+    <button class="btn-outline" onclick="exportData()"><i class="fa fa-download"></i> Xuất dữ liệu</button>
+    <button class="btn-outline" onclick="$('fileImport').click()"><i class="fa fa-upload"></i> Nhập dữ liệu</button>
+  `);
+  $('fileImport').addEventListener('change', importData);
+});
 
 renderAll();
 </script>
+
 </body>
 </html>
+
